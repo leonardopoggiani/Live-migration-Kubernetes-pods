@@ -1,7 +1,7 @@
 ---
 title: Discorso tesi
 created: '2022-10-18T09:43:06.173Z'
-modified: '2022-10-18T16:31:48.714Z'
+modified: '2022-10-19T08:07:39.571Z'
 ---
 
 # Discorso tesi
@@ -14,6 +14,7 @@ Kubernetes is a portable, extensible and open-source platform for managing conta
 In the context of containers this means that users and groups may have privileges for certain operations inside containers without having them outside. One of the specific goals of containers is to allow a process to have root privileges for operations inside the container, while at the same time making it a normal non-privileged process outside the container.
 **cgroups** allow you to allocate resources (CPU time, system memory, network bandwidth) between user-defined task (process) groups running on a system. It is possible to monitor the cgroups that have been configured, prevent access to certain resources and even reconfigure them dynamically.
 Containers are a good way to deploy and run your applications. In a production environment, you need to manage the containers that run applications and ensure that no service interruptions occur. For example, if a container goes down, a new container needs to be started.
+The containerized application will always be executed the same way regardless of the environment. 
 
 Kubernetes provides you with:
 * **Service discovery and load balancing:** Kubernetes can expose a container using a DNS name or its IP address. If the traffic to a container is high, Kubernetes is able to distribute the traffic across multiple containers so that the service remains stable.
@@ -26,21 +27,27 @@ Kubernetes provides you with:
 A Kubernetes cluster consists of a set of worker machines, called nodes, that run containerized applications. Every cluster has at least one worker node.
 The worker node(s) host the Pods that are the components of the application workload. 
 The control plane manages the worker nodes and the Pods in the cluster.
+There are several ways to deploy a Kubernetes cluster:
+
+* *bare metal*: you can install Kubernetes on a bare metal server, configuring all you need and as you need. Complex but very efficient and customizable
+* *locally*: you can install Kubernetes on your local machine, creating a cluster using a tool like **kind** or **minikube**. This is not a solution for production environment but it is for testing and developing.
+* *managed cluster*: you can buy your access to a Kubernetes cluster, not having to care about the configuration at all but just using it.
+
 In production environments, the control plane usually runs across multiple computers and a cluster usually runs multiple nodes, providing fault-tolerance and high availability.
 
 The control plane is actually made up of several components:
-* kube-apiserver This is the frontend server for the control plane, handling API requests.
-* etcd This is the database where Kubernetes stores all its information: what nodes exist, what resources exist on the cluster, and so on. 
-* kube-scheduler This decides where to run newly created Pods. 
-* kube-controller-manager This is responsible for running resource controllers, such as Deployments. 
-* cloud-controller-manager This interacts with the cloud provider (in cloud-based clusters), managing resources such as load balancers and disk volumes. 
+* **kube-apiserver**: This is the frontend server for the control plane, handling API requests.
+* **etcd**: This is the database where Kubernetes stores all its information: what nodes exist, what resources exist on the cluster, and so on. 
+* **kube-scheduler**: This decides where to run newly created Pods. 
+* **kube-controller-manager**: This is responsible for running resource controllers, such as Deployments. 
+* **cloud-controller-manager**: This interacts with the cloud provider (in cloud-based clusters), managing resources such as load balancers and disk volumes. 
 
 The control-plane components in a production cluster typically run on multiple servers to ensure high availability.
 
 The nodes are composed of:
-* kubelet This is responsible for driving the container runtime to start workloads that are scheduled on the node, and monitoring their status. 
-* kube-proxy This does the networking magic that routes requests between Pods on different nodes, and between Pods and the internet. 
-* Container runtime This actually starts and stops containers and handles their communications.
+* **kubelet**: This is responsible for driving the container runtime to start workloads that are scheduled on the node, and monitoring their status. 
+* **kube-proxy**: This does the networking magic that routes requests between Pods on different nodes, and between Pods and the internet. 
+* **Container runtime**: This actually starts and stops containers and handles their communications.
 
 Historically the most popular option has been Docker, but Kubernetes supports other container runtimes as well, such as containerd and CRI-O.
 Recently Docker has been deprecated.
@@ -84,6 +91,7 @@ YAML is a format for data serialization designed to be understood by humans.
 Pods are **non-permanent** resources, they are destroyed and re-created continously to match the desired state of the cluster.
 Pods are the smallest deployable units of computing that you can create and manage in Kubernetes.
 A Pod is a group of one or more containers, with shared storage and network resources, and a specification for how to run the containers. A Pod's contents are always co-located and co-scheduled, and run in a shared context. A Pod models an application-specific "logical host": it contains one or more application containers which are relatively tightly coupled. In non-cloud contexts, applications executed on the same physical or virtual machine are analogous to cloud applications executed on the same logical host.
+Usually we don't need more than one container per pod, but there are some cases where may be advisable to do that. Cases where container needs to share volumes or are tighly coupled regard communication.
 When Kubernetes schedules a Pod to run on a node, it creates a network namespace for the Pod in the node's Linux kernel. This network namespace connects the node's physical network interface, such as eth0, with the Pod using a virtual network interface, so that packets can flow to and from the Pod. The associated virtual network interface in the node's root network namespace connects to a Linux bridge that allows communication among Pods on the same node. A Pod can also send packets outside of the node using the same virtual interface.
 Kubernetes assigns an IP address (the Pod IP) to the virtual network interface in the Pod's network namespace from a range of addresses reserved for Pods on the node. This address range is a subset of the IP address range assigned to the cluster for Pods, which you can configure when you create a cluster.
 A container running in a Pod uses the Pod's network namespace. From the container's point of view, the Pod appears to be a physical machine with one network interface. All containers in the Pod see this same network interface. Each container's localhost is connected, through the Pod, to the node's physical network interface, such as eth0.
@@ -230,9 +238,7 @@ You specify the set of pods you want a service to target via a label selector, f
 Kubernetes would create a service that targets all pods with a label app=someapp. 
 Note that if such a selector exists, then for each of the targeted pods a sub-resource of type Endpoint will be created, and if no selector exists then no endpoints are created.
 Keeping the mapping between the VIP and the pods up-to-date is the job of kube-proxy.
-You could find out the Pod’s IP address and connect directly to that address and the app’s port number. 
-But the IP address may change when the Pod is restarted, so you’ll have to keep looking it up to make sure it’s up-to-date. 
-Worse, there may be multiple replicas of the Pod, each with different addresses. 
+You could find out the Pod’s IP address and connect directly to that address and the app’s port number. But the IP address may change when the Pod is restarted, so you’ll have to keep looking it up to make sure it’s up-to-date. Worse, there may be multiple replicas of the Pod, each with different addresses. 
 Every other application that needs to contact the Pod would have to maintain a list of those addresses, which doesn’t sound like a great idea.
 A selector is an expression that matches a label (or set of labels). It’s a way of specifying a group of resources by their labels.
 Labels are key/value pairs that are attached to objects, such as pods. 
@@ -246,6 +252,8 @@ Traffic from the external load balancer is directed at the backend Pods. The clo
 Some cloud providers allow you to specify the loadBalancerIP. In those cases, the load-balancer is created with the user-specified loadBalancerIP. If the loadBalancerIP field is not specified, the loadBalancer is set up with an ephemeral IP address. If you specify a loadBalancerIP but your cloud provider does not support the feature, the loadbalancerIP field that you set is ignored.
 **ExternalName**: Maps the Service to the contents of the externalName field (e.g. foo.bar.example.com), by returning a CNAME record with its value. No proxying of any kind is set up.
 
+When a service is created, also a *DNS-entry* is created.
+
 In iptables mode, kube-proxy creates iptables rules for kubernetes services which ensure that the request to the service gets routed (and load balanced) to the appropriate pods.
 These iptables rules also help answer the second question mentioned above. As long as these iptables rules exist, requests to services will get routed to the appropriate pods even if kube-proxy process dies on the node. Endpoints for new services won’t work from this node, however, since kube-proxy process won’t create the iptables rules for it.
 As outlined in this flow chart, there are rules in the PREROUTING chain of the nat table for kubernetes services. As per iptables rules evaluation order, rules in the PREROUTING chain are the first ones to be consulted as a packet enters the linux kernel’s networking stack.
@@ -254,7 +262,7 @@ As a part of the v1.25 release, SIG Network made this declaration explicit: that
 
 ### Ingress
 
-An API object that manages external access to the services in a cluster, typically HTTP.
+An API object that manages external access to the services in a cluster, typically HTTP but it is not a type of service.
 Ingress may provide load balancing, SSL termination and name-based virtual hosting
 
 Ingress exposes HTTP and HTTPS routes from outside the cluster to services within the cluster. Traffic routing is controlled by rules defined on the Ingress resource.
@@ -263,6 +271,8 @@ conceptually, it is split up into two main pieces, an Ingress resource, which de
 
 ### CNI
 
+Kubernetes have a default plugin that is *kube-net* but that handles the incoming requests. Kube-net is a very basic plugin that doesn't have many features so if a developer needs more features then other network plugin should be used.
+
 #### Cilium 
 
 Cilium is another CNI solution, based on **eBPF**, and is designed to be run at large scale. Whilst Cilium implements the standard NetworkPolicies, it is able to utilise the full packet introspection of eBPF, enabling it to have first class support for Layer 7 policy for a number of protocols, custom extensions using Envoy, large options for endpoint selection, as well as rich network monitoring introspection. For these reasons, Cilium becomes a very favourable choice for running Kubernetes at scale, with *complex network policy requirements*.
@@ -270,12 +280,21 @@ Kubernetes doesn't come with an implementation of Load Balancing. This is usuall
 Cilium and eBPF operate at the kernel layer. With this level of context we can make intelligent decisions about how to connect different workloads whether on the same node or between clusters. With eBPF and XDP Cilium enables significant improvements in latency and performance and eliminates the need for kube-proxy entirely.
 Cilium’s control and data plane has been built from the ground up for large-scale and highly dynamic cloud native environments where 100s and even 1000s of containers are created and destroyed within seconds. Cilium’s control plane is highly optimized, running in Kubernetes clusters of up to 5K nodes and 100K pods. Cilium’s data plane uses eBPF for efficient load-balancing and incremental updates, avoiding the pitfalls of large iptables rulesets. Cilium is fully IPv6-aware.
 With standard Kubernetes networking each cluster is an island, requiring proxies to connect workloads across clusters for the purposes of migration, disaster-recovery, or geographic locality. Cilium Cluster Mesh creates a single zone of connectivity for load-balancing, observability and security between nodes across multiple clusters, enabling simple, high-performance cross-cluster connectivity.
+It creates a L3 + overlay network with VXLAN or GENEVE (GEneric NEtwork Virtualization Encapsulation)
 
 eBPF is a revolutionary technology with origins in the Linux kernel that can run sandboxed programs in an operating system kernel. It is used to safely and efficiently extend the capabilities of the kernel without requiring to change kernel source code or load kernel modules.
 Historically, the operating system has always been an ideal place to implement observability, security, and networking functionality due to the kernel’s privileged ability to oversee and control the entire system. At the same time, an operating system kernel is hard to evolve due to its central role and high requirement towards stability and security. The rate of innovation at the operating system level has thus traditionally been lower compared to functionality implemented outside of the operating system.
 eBPF changes this formula fundamentally. By allowing to run sandboxed programs within the operating system, application developers can run eBPF programs to add additional capabilities to the operating system at runtime. The operating system then guarantees safety and execution efficiency as if natively compiled with the aid of a Just-In-Time (JIT) compiler and verification engine. This has led to a wave of eBPF-based projects covering a wide array of use cases, including next-generation networking, observability, and security functionality.
 Today, eBPF is used extensively to drive a wide variety of use cases: Providing high-performance networking and load-balancing in modern data centers and cloud native environments, extracting fine-grained security observability data at low overhead, helping application developers trace applications, providing insights for performance troubleshooting, preventive application and container runtime security enforcement, and much more. The possibilities are endless, and the innovation that eBPF is unlocked has only just begun.
 The combination of programmability and efficiency makes eBPF a natural fit for all packet processing requirements of networking solutions. The programmability of eBPF enables adding additional protocol parsers and easily program any forwarding logic to meet changing requirements without ever leaving the packet processing context of the Linux kernel. The efficiency provided by the JIT compiler provides execution performance close to that of natively compiled in-kernel code. 
+
+With eBPF we don't need kube-proxy:
+* reduce first packet latency
+* preserve client's external ip addresses 
+* supports DSR (Direct Server Return)
+* use less CPU than kube-proxy
+
+If we have to apply network policies to a large number of ip addresses then iptables are a lot better than eBPF. But if we have to modify the packet flow it's better eBPF. eBPF offers also more flexibility but is a virtual machine (a lightweight virtual machine, not a standard one) and as a virtual machine must be translated while iptables are already compiled.
 
 #### Flannel
 
@@ -368,10 +387,7 @@ Each part of an app, called a "service," relies on other services to give users 
 Modern applications are often broken down in this way, as a network of services each performing a specific business function. In order to execute its function, one service might need to request data from several other services. But what if some services get overloaded with requests, like the retailer’s inventory database? This is where a service mesh comes in—it routes requests from one service to the next, optimizing how all the moving parts work together.
 A microservices architecture lets developers make changes to an app’s services without the need for a full redeploy. Unlike app development in other architectures, individual microservices are built by small teams with the flexibility to choose their own tools and coding languages. Basically, microservices are built independently, communicate with each other, and can individually fail without escalating into an application-wide outage.
 Service-to-service communication is what makes microservices possible. The logic governing communication can be coded into each service without a service mesh layer—but as communication gets more complex, a service mesh becomes more valuable. For cloud-native apps built in a microservices architecture, a service mesh is a way to comprise a large number of discrete services into a functional application.
-Deploying application’s components in separate processes or containers to entrust isolation and encapsulation.
-Sidecar can be attached to the parent application and provide support features to the application.
-Dataplane is implemented as an array of proxies (e.g. Envoy) deployed as sidecars.
-Each pod contains a proxy istance to manage the communication between microservices. 
+Deploying application’s components in separate processes or containers to entrust isolation and encapsulation. Sidecar can be attached to the parent application and provide support features to the application. Dataplane is implemented as an array of proxies (e.g. Envoy) deployed as sidecars. Each pod contains a proxy istance to manage the communication between microservices. 
 The control plane manage and configure proxies to route the traffic.
 Without a service mesh, each microservice needs to be coded with logic to govern service-to-service communication, which means developers are less focused on business goals. It also means communication failures are harder to diagnose because the logic that governs interservice communication is hidden within each service.
 Every new service added to an app, or new instance of an existing service running in a container, complicates the communication environment and introduces new points of possible failure. Within a complex microservices architecture, it can become nearly impossible to locate where problems have occurred without a service mesh.
@@ -433,7 +449,9 @@ In this example, if a user requests yourdomain.com/blog, they are forwarded to t
 
 ## Pod migration
 
-Placing certain services near the consumers has great benefits, including low-latency response, bandwidth consumption savings, and data locality. However, there are also multiple challenges. One of the key challenges with the Kubernetes deployment model is the placement of the Kubernetes control plane that manages the workers that comprise the resource pools consumed by the applications and services. The two main options for control plane placement are:
+Placing certain services near the consumers has great benefits, including low-latency response, bandwidth consumption savings, and data locality. However, there are also multiple challenges. 
+If we want the migration to be *transparent* then the application being checkpointed does not have to be modified. If we can perform the checkpointing in the *user-space* then it's much easier because we don't have to modify the kernel-space.
+One of the key challenges with the Kubernetes deployment model is the placement of the Kubernetes control plane that manages the workers that comprise the resource pools consumed by the applications and services. The two main options for control plane placement are:
 
 *	Deploying full-fledged cluster(s), complete with control nodes and worker nodes, everywhere you need your applications to be accessible
 *	Deploying worker nodes at the edge and connecting them to the central location hosting the control plane
@@ -454,6 +472,15 @@ Live migration (Live migration attempts to provide a seamless transfer of servic
 True live migration using CRIU is possible, but doing all the steps by hands might be complicated. The phaul sub-project provides a Go library that encapsulates most of the complexity. This library and the Go bindings for CRIU are stored in the go-criu repository.
 In order to get state of the running process CRIU needs to make this process execute some code, that would fetch the required information. To make this happen without killing the application itself,CRIU uses the parasite code injection technique, which is also available as a standalone library called libcompel.
 One of the CRIU features is the ability to save and restore state of a TCP socket without breaking the connection. This functionality is considered to be useful by itself, and we have it available as the libsoccr library.
+How does it works?
+1. Checkpointing:
+  1. Checkpoint using the *ptrace()* system call that freeze the process tree.
+  2. Collect external process information from `/proc/<pid>`
+  3. Collect internal process information using *parasite code* that allow to dump the process memory.
+  4. Cure the process, removing the parasite code.
+2. Use *clone()* to clone the process
+3. Re-open all the file descriptors and map the pages in memory.
+4. Re-run the restored process
 
 ### DMTCP
 
@@ -493,12 +520,20 @@ In a combination with the approach of composing a cluster from multiple hardware
 Another good example is migration between regions of different cloud infrastructure vendors. This allows to achieve the high availability across multiple clouds and ensures disaster recovery through the unification of DevOps workloads deployment. For example, you can instantly cope with any performance issues, like maintenance works on your current region or temporary load burst, through simple evacuation of all your containers to another DC. 
 One more benefit here is the ability to relocate applications according to the current business requirements and, in such a way, gain the most sufficient quality/price/SLA rate - for example, less performance region can be used as a Private Cloud for the development/testing zone, while another Public one provides the sufficient capacity for production. Smooth migration ensures all these changes can be performed without bothering about possible downtimes and profit losses.
 
-
 * **Migrating Deep Learning Data and Applications among Kubernetes Edge Nodes**: Many current IoT applications deployed at the edge use deep learning (DL) in their real-time processing and analytics. Not only inference but also training is moving to edge devices. DL application and dataset migration among these devices are mandatory for scenarios like node failure, user mobility or when nodes need to collaborate (e.g., distributed training). Container technologies and Kubernetes (K8s) are being increasingly adopted to manage infrastructure at the edge. Unfortunately, there is no built-in mechanism in K8s to support migration of stateful containers between its cluster nodes. The K8s cluster's master node generally launches a new fresh container in another node to replace the failed one. While there is an existing mechanism for migrating a Pod between K8s nodes, there is no past work investigating the migration of DL datasets and containerized DL applications among K8s cluster nodes. In this paper, we present our 1) comprehensive study on the effectiveness and limitations of existing checkpointing mechanisms for containerized DL applications and 2) our comparative performance study of several approaches in migrating DL datasets and applications in a K8s cluster. Our results show that migrating states of DL applications and restoring them from their previous states enables faster recovery (reducing training time by 10 to 73 percent) than re-running these models from the beginning regardless of the percentage of epochs that have completed. Additionally, our experimental results show that transferring a dataset between K8s workers using the K8s persistent volume with kubectl cp is generally suitable and efficient. However, when network latency is high, using our customized middleware with a feedback controller to migrate data in parallel can speed up total migration time compared to the K8s's persistent volume approach alone.
+
+Actually migrate a pod containing a DL model and then migrate the dataset.
 
 * **Enabling Live Migration of Containerized Applications Across Clouds**: Live migration, the process of transferring a running application to a different physical location with minimal downtime, can provide many benefits desired by modern cloudbased systems. Furthermore, live migration between different cloud providers enables a new level of freedom for cloud users to move their workloads around for performance or business objectives without having to be tied down to any single provider. While this vision is not new, to-date, there are few solutions and proof-of-concepts that provide this capability. As containerized applications are gaining popularity, we focus on the design and implementation of live migration of containers across cloud providers. CloudHopper, our proof-of-concept live migration service for containers to hop around between Amazon Web Services, Google Cloud Platform, and Microsoft Azure is evaluated using a common web-based workload. CloudHopper is automated and supports pre-copy optimization, connection holding, traffic redirection, and multiple interdependent container migration. It is applicable to a broad range of application use cases.
 
+Why i need that? I gain liberty and flexibility but i have a downtime of nearly 30 seconds during migration. Users don't see the delay because there is a mechanism of *hold-and-redirect* that keep the ingress traffic during migration and redirect that traffic when the migration ends. This mechanism is implemented using HAProxy.
+
 * **EVPN/SDN Assisted Live VM Migration between Geo-Distributed Data Centers**: Live Virtual Machine (VM) migration has significantly improved the flexibility of modern Data Centers (DC). However, seamless live migration of a VM between geo-distributed DCs faces several challenges due to difficulties in preserving the network configuration after the migration paired with a large network convergence time. Although SDN-based approaches can speed up network convergence time, these techniques have two limitations. First, they typically react to the new topology by installing new flow rules once the migration is finished. Second, because the WAN is typically not under SDN control, they result in sub-optimal routing thus severely degrading the network performance once the VM is attached at the new location. In this paper, we identify networking challenges for VM migration across geo-distributed DCs. Based on those observations, we design a novel long-haul VM migration scheme that overcomes those limitations. First, instead of reactively restoring connectivity after the migration, our SDN-based approach proactively restores flows across the WAN towards the new location with the help of EVPN and VXLAN overlay technologies. Second, the SDN controller accelerates the network convergence by announcing the migration to other controllers using MP-BGP control plane messages. Finally, the SDN controller resolves the sub-optimal routing problem that arises as a result of migration implementing a distributed anycast gateway. We implement our approach as extensions to the OpenDaylight controller. Our evaluation shows that our approach outperforms existing approaches in reducing the downtime by 400 ms and increasing the application performance up to 12 times.
+
+Insted of react *reactively* at a migration, we can react *proactively* using EVPN/VXLAN. The SDN controller accelerate the network convergence announcing the migration to others controller using MP-BGP messages.
+Two main problems:
+1. Triangular routing: increase the latency. All the traffic destined to a device passes through its home agent.
+2. Hair pinning effect: additional workload on network nodes, increase the congestion level and wastes bandwidth. Originates from the *default gateway problem* that occurs when a VM does not flush its ARP table when relocating from one server to another and continues sending packets with the destination MAC address set to that of the original gateway located in the previous DC.
 
 * **Stateful Container Migration in Geo-Distributed Environments**: Container migration is an essential functionality in large-scale geo-distributed platforms such as fog computing infrastructures. Contrary to migration within a single data center, long-distance migration requires that the container's disk state should be migrated together with the container itself. However, this state may be arbitrarily large, so its transfer may create long periods of unavailability for the container. We propose to exploit the layered structure provided by the OverlayFS file system to transparently snapshot the volumes' contents and transfer them prior to the actual container migration. We implemented this mechanism within Kubernetes. Our evaluations based on a real fog computing test-bed show that our techniques reduce the container's downtime during migration by a factor 4 compared to a baseline with no volume checkpoint.
 

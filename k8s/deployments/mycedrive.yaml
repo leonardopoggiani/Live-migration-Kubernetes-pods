@@ -1,0 +1,28 @@
+containers:
+  - name: nginxcontainer
+    image: enrichednginx
+    ports:
+    - containerPort: 80
+    volumeMounts: # Shared volume with DMTCP binaries
+    - name: dmtcp-shared
+      mountPath: /dmtcp
+    env: # Environment variables with EA's configuration
+    - name: MIGR_COOR
+      value: coord.api # hostname to reach the coordinator API
+    - name: START_UP
+      value: "/usr/sbin/nginx -g 'daemon off;'"
+      # Application startup command to be wrapped by DMTCP
+    lifecycle:
+      # End script to make sure the checkpoints are created
+      preStop:
+        exec:
+          command: [ "./end_container" ]
+  - name: dmtcpcontainer
+    # Container running dmtcp_coordinator
+    image: dmtcp:dev
+    env:
+    - name: DMTCP_CHECKPOINT_DIR
+      value: /dmtcp/checkpoints
+    volumeMounts: # Shared volume with the DMTCP binaries
+    - name: dmtcp-shared
+      mountPath: /share

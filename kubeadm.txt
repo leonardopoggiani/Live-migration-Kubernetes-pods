@@ -1,0 +1,9 @@
+master 1:
+
+kubeadm join 172.16.5.183:6443 --token 4txj0n.jb6gh5rb66bmzrz7 \
+	--discovery-token-ca-cert-hash sha256:90ee2e2a512c91bcde6d76e3fdd91fe45f92242502083f4c297f995aee17509c
+	
+master 2:
+
+kubeadm join 172.16.3.23:6443 --token 539a0y.3i3prqpo2w2lj4yi \
+	--discovery-token-ca-cert-hash sha256:38e9ebec44525bb35ecc0d55a92dd4c680bf4698f5365ad316e97b8482c5b751

@@ -109,9 +109,3 @@ Copy the `kubeadm join`.
 - criu:       3.17.1
 - go:         1.19.3
 
-## Final setup
-
-At the end we must have a setup like this:
-
-![alt text](images/setup.png)
- 
